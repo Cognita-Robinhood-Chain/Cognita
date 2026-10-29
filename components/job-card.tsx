@@ -1,0 +1,366 @@
+'use client';
+
+import { WAGE_UNIT } from '@/lib/currency';
+import { useState } from 'react';
+import Link from 'next/link';
+import { AnimatePresence, motion } from 'motion/react';
+import { cn } from '@/lib/cn';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { Button } from '@/components/ui/button';
+import { WARD_LABEL } from '@/types/domain';
+import { MAX_NOTE_LENGTH, buildAnswerTemplate } from '@/lib/continue-job';
+import type { JobSummary } from '@/types/domain';
+
+interface JobCardProps {
+  job: JobSummary;
+  /** true kalau job ini milik client yang sedang login -- menampilkan gerbang seal */
+  isOwnJob?: boolean;
+  /** true selagi set-the-seal/send-back sedang diproses -- menonaktifkan tombol */
+  busy?: boolean;
+  /** Label langkah yang sedang jalan selama Set the seal on-chain (mis.
+   *  "Confirm in your wallet…"). Kosong -> label bawaan. */
+  busyLabel?: string;
+  /** pesan error dari permintaan set-the-seal/send-back terakhir, kalau gagal */
+  error?: string;
+  /** Judul job jadi link ke /jobs/[id] (Page D). Default true -- dimatikan
+   *  saat JobCard dipakai *di dalam* Page D sendiri supaya tidak me-link ke
+   *  dirinya sendiri. */
+  linkToDetail?: boolean;
+  /** Tampil sebagai kartu mandiri (border + sudut membulat + hover) hanya saat
+   *  wadah induk (`@container`) selebar >= 48rem. Di bawah itu tetap baris. */
+  card?: boolean;
+  /** true untuk job yang sudah di-seal milik orang lain: kartu tetap tampil di
+   *  daftar, tapi judul tidak jadi link dan detailnya terkunci. */
+  locked?: boolean;
+  /** Rating (1-5) untuk Wright di job ini ikut dikirim saat Set the seal --
+   *  dipakai untuk Client rating di Wright profile (lib/agent-stats.ts).
+   *  Opsional: undefined kalau job tidak punya agent untuk di-rate. */
+  onSetSeal?: (rating?: number) => void;
+  /** Send back butuh catatan revisi (Article IV: setiap aksi tercatat) */
+  onSendBack?: (note: string) => void;
+  /** Isi deliverable -- dipakai untuk membaca bagian "Open questions" Wright dan
+   *  mengisi awal catatan Send back dengan pertanyaan + baris jawaban. */
+  deliverable?: string | null;
+}
+
+const RATING_LABELS: Record<number, string> = {
+  1: 'Poor',
+  2: 'Fair',
+  3: 'Good',
+  4: 'Great',
+  5: 'Excellent',
+};
+
+/** Datang dari tombol "Review & seal" di Job Board (/jobs/[id]#seal):
+ *  gulir langsung ke gerbang seal supaya rating bintang terlihat. */
+function scrollToSealIfHashed(el: HTMLDivElement | null) {
+  if (el && typeof window !== 'undefined' && window.location.hash === '#seal') {
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}
+
+export function JobCard({
+  job,
+  isOwnJob,
+  busy,
+  busyLabel,
+  error,
+  linkToDetail = true,
+  card = false,
+  locked = false,
+  onSetSeal,
+  onSendBack,
+  deliverable,
+}: JobCardProps) {
+  const isReview = job.status === 'review';
+  const [composing, setComposing] = useState(false);
+  const [note, setNote] = useState('');
+  // Rating wajib kalau job punya Wright -- 0 = belum dipilih, tombol seal terkunci.
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0); // pratinjau bintang saat kursor di atasnya
+  const needsRating = !!job.agentCode && rating === 0;
+  const answerTemplate = buildAnswerTemplate(deliverable);
+  const hasOpenQuestions = answerTemplate !== '';
+
+  function confirmSendBack() {
+    if (!note.trim()) return;
+    onSendBack?.(note.trim());
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-2 transition-[border-color,box-shadow] duration-300',
+        // Mode kartu (cognita-app.html `.job`): kartu putih bersudut 14. Tanpa `card`
+        // (mis. di dalam panel Job Detail) tampil sebagai blok polos.
+        card
+          ? 'h-full rounded-card border border-line bg-white/75 px-3.5 py-3 hover:border-line-2'
+          : 'px-4 py-3.5',
+        // Menunggu seal: border gradien cobalt + latar biru pucat -- penanda paling kuat di board.
+        isReview &&
+          card &&
+          'card-awaiting hover:border-transparent',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2.5">
+        {linkToDetail && !locked ? (
+          <Link
+            href={`/jobs/${job.id}`}
+            className="font-semibold leading-snug text-text hover:text-cobalt"
+          >
+            {job.title}
+          </Link>
+        ) : (
+          <span className="font-semibold leading-snug text-text">
+            {job.title}
+          </span>
+        )}
+        <span className="whitespace-nowrap font-mono text-[13px] font-medium tabular-nums text-text">
+          {job.budgetUsdc.toLocaleString('en-US')} {WAGE_UNIT}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-muted">
+        <span>
+          {WARD_LABEL[job.district]}
+          {job.agentCode ? ` · ${job.agentCode}` : ''}
+        </span>
+      </div>
+
+      {locked && (
+        <p className="flex items-center gap-1.5 text-[11.5px] text-muted">
+          <span aria-hidden>🔒</span>
+          <span>
+            Sealed. Details are visible only to the client who posted it.
+          </span>
+        </p>
+      )}
+
+      {(job.status === 'open' || job.status === 'working') && (
+        <div className="flex items-center gap-1.5 text-[12px] text-cobalt">
+          <span aria-hidden className="relative flex size-1.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-cobalt opacity-50" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-cobalt" />
+          </span>
+          <span>
+            {job.status === 'open'
+              ? 'The Warden is choosing a Wright…'
+              : `${job.agentCode || 'A Wright'} is working on this brief · ${Math.round(job.progress)}%`}
+          </span>
+        </div>
+      )}
+
+      {(job.status === 'working' || job.status === 'open') && (
+        <ProgressBar value={job.progress} />
+      )}
+
+      {/* Gerbang seal <-> form "Send back" bergantian dengan fade pendek. `mode="wait"`
+          = yang lama selesai keluar dulu, baru yang baru masuk (tanpa lompatan tinggi). */}
+      <AnimatePresence mode="wait" initial={false}>
+        {isReview && isOwnJob && linkToDetail && (
+          <motion.div
+            key="review-link"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col gap-1.5"
+          >
+            <p className="text-[12px] text-cobalt">
+              The Wright has delivered. Read it, rate the work, then set the seal.
+            </p>
+            <Link href={`/jobs/${job.id}#seal`} className="w-fit">
+              <Button variant="primary" size="small">
+                Review &amp; seal
+              </Button>
+            </Link>
+          </motion.div>
+        )}
+
+        {isReview && isOwnJob && !linkToDetail && !composing && (
+          <motion.div
+            key="gate"
+            id="seal"
+            ref={scrollToSealIfHashed}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col gap-1.5"
+          >
+            <p className="text-[12.5px] font-medium text-cobalt">
+              Awaiting your seal to release the wage.
+            </p>
+            {job.agentCode && (
+              <div
+                className={cn(
+                  'flex flex-col gap-2 rounded-card border px-3.5 py-3 transition-colors',
+                  rating === 0
+                    ? 'border-cobalt/40 bg-cobalt-tint shadow-[0_0_0_3px_rgba(29,78,216,0.08)]'
+                    : 'border-good/40 bg-good/[0.06]',
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-[13px] font-semibold text-text">
+                    Rate this Wright&apos;s work
+                  </label>
+                  <span
+                    className={cn(
+                      'rounded-md px-2 py-1 font-mono text-[10px] font-medium uppercase leading-none tracking-[0.1em]',
+                      rating === 0
+                        ? 'bg-cobalt text-white'
+                        : 'bg-good/15 text-good',
+                    )}
+                  >
+                    {rating === 0 ? 'Required' : 'Done'}
+                  </span>
+                </div>
+                <div
+                  className="flex items-center gap-1.5"
+                  role="radiogroup"
+                  onMouseLeave={() => setHoverRating(0)}
+                >
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      role="radio"
+                      aria-checked={rating === n}
+                      aria-label={`${n} -- ${RATING_LABELS[n]}`}
+                      disabled={busy}
+                      onMouseEnter={() => setHoverRating(n)}
+                      onFocus={() => setHoverRating(n)}
+                      onBlur={() => setHoverRating(0)}
+                      onClick={() => setRating(rating === n ? 0 : n)}
+                      className={cn(
+                        'grid size-10 place-items-center rounded-control-sm text-[28px] leading-none transition-all duration-150 hover:scale-115 active:scale-95 disabled:opacity-60',
+                        n <= (hoverRating || rating)
+                          ? 'text-cobalt drop-shadow-[0_0_6px_rgba(29,78,216,0.35)]'
+                          : 'text-star-off',
+                        rating === 0 && hoverRating === 0 && 'animate-pulse',
+                      )}
+                    >
+                      ★
+                    </button>
+                  ))}
+                  <span className="ml-2 min-w-16 text-[13px] font-semibold text-cobalt">
+                    {RATING_LABELS[hoverRating || rating] ?? ''}
+                  </span>
+                </div>
+              </div>
+            )}
+            {needsRating && (
+              <p className="text-[12px] text-muted">
+                Tap a star to rate the work. “Set the seal” unlocks after you
+                rate.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                size="small"
+                onClick={() => onSetSeal?.(rating > 0 ? rating : undefined)}
+                disabled={busy || needsRating}
+                title={needsRating ? 'Rate the Wright first' : undefined}
+              >
+                {busy ? (busyLabel ?? 'Setting the seal…') : 'Set the seal'}
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  // Buka form dengan pertanyaan Wright sebagai isi awal (kalau ada
+                  // dan kotaknya masih kosong) supaya tinggal diisi jawabannya.
+                  if (!note.trim() && hasOpenQuestions) setNote(answerTemplate);
+                  setComposing(true);
+                }}
+                disabled={busy}
+              >
+                {hasOpenQuestions ? 'Answer & send back' : 'Send back'}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {isReview && isOwnJob && !linkToDetail && composing && (
+          <motion.div
+            key="compose"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col gap-1.5"
+          >
+            <label className="text-[12px] font-medium text-ink-2">
+              {hasOpenQuestions
+                ? 'Answer the Wright’s open questions, or say what needs to change before you can set the seal.'
+                : 'What needs to change before you can set the seal?'}
+            </label>
+            <textarea
+              autoFocus
+              value={note}
+              maxLength={MAX_NOTE_LENGTH}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={
+                hasOpenQuestions
+                  ? 'e.g. "Focus on token X over the last 30 days."'
+                  : 'e.g. "Please add sources for the price claims."'
+              }
+              className={cn(
+                'resize-y rounded-control border border-line-2 bg-surface-2 px-3 py-2 text-[13px] text-text outline-none transition-shadow focus-visible:border-cobalt focus-visible:shadow-[0_0_0_3px_rgba(29,78,216,0.15)]',
+                hasOpenQuestions ? 'min-h-32' : 'min-h-16',
+              )}
+            />
+            <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
+              <span>
+                The same Wright reworks the report. Each send back counts toward
+                5 per job.
+              </span>
+              <span className="font-mono tabular-nums">
+                {note.length}/{MAX_NOTE_LENGTH}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="small"
+                onClick={confirmSendBack}
+                disabled={busy || !note.trim()}
+              >
+                {busy
+                  ? 'Sending back…'
+                  : hasOpenQuestions
+                    ? 'Send answers back'
+                    : 'Confirm send back'}
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setComposing(false);
+                  setNote('');
+                }}
+                disabled={busy}
+              >
+                Cancel
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            key="error"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            role="alert"
+            className="text-[12px] text-crit"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+/* Token warna & font identitas Cognita. Phase 1 mengikuti desain referensi
+   cognita-app.html (terang, kaca putih, aksen cobalt) -- lihat DESIGN_SYSTEM.md §2.
+   Satu-satunya tempat nilai warna didefinisikan. Tailwind v4 pakai @theme, bukan
+   tailwind.config.ts -- kelas seperti bg-bg, text-cobalt, text-ward-research otomatis
+   dihasilkan dari sini. Nama semantik lama (bg, surface, line, text, muted, faint) sengaja
+   dipertahankan dengan nilai baru supaya kelas yang sudah ada ikut berubah. */
+@theme {
+  --color-bg: #ededf5;
+  --color-surface: rgba(255, 255, 255, 0.72);
+  --color-surface-2: #ffffff;
+  --color-line: rgba(17, 17, 22, 0.08);
+  --color-line-2: rgba(17, 17, 22, 0.14);
+  --color-text: #111116; /* "ink" di desain */
+  --color-ink-2: #3a3a4c;
+  --color-muted: #6a6a80;
+  --color-faint: #8c8ca2;
+
+  --color-cobalt: #1d4ed8;
+  --color-cobalt-2: #2f62f0;
+  --color-cobalt-deep: #1638a3;
+  --color-cobalt-soft: #7da2ff;
+  --color-cobalt-ink: #142f86;
+  --color-cobalt-wash: rgba(29, 78, 216, 0.08);
+  --color-cobalt-tint: #f3f6ff;
+
+  --color-good: #12805c;
+  --color-warn: #b26a00;
+  --color-crit: #c03a3a;
+  --color-live: #22b07d;
+
+  /* Pembagian wage & efek kota */
+  --color-tithe: #a1a1b5;
+  --color-furnace: #e27070;
+  --color-ember: #ff7a5c;
+  --color-star-off: #c9c9d6;
+
+  /* Warna per Ward, sesuai brief-cognita.md §8.3 (sama di desain baru) */
+  --color-ward-research: #5fb3b0;
+  --color-ward-onchain: #e0a458;
+  --color-ward-creative: #d9776b;
+  --color-ward-security: #9c8be0;
+  --color-ward-community: #8dbf7f;
+
+  --font-display: var(--font-display-family), "Avenir Next", system-ui, sans-serif;
+  --font-body: var(--font-body-family), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-mono-family), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-panel: 18px;
+  --radius-card: 14px;
+  --radius-control: 12px;
+  --radius-control-sm: 10px;
+  --radius-dialog: 20px;
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 24px 48px -28px rgba(29, 78, 216, 0.35),
+    0 10px 24px -14px rgba(17, 17, 22, 0.16), 0 2px 6px -2px rgba(17, 17, 22, 0.05);
+  --shadow-cta: 0 8px 18px -8px rgba(29, 78, 216, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --shadow-awaiting: 0 14px 28px -20px rgba(29, 78, 216, 0.6);
+  --shadow-soft: 0 4px 10px -4px rgba(17, 17, 22, 0.25);
+
+  /* Breakpoint desain (cognita-app.html): 720 / 1180 / 1480 / 1780 px.
+     `tab:` = di atas mobile, `desk:` = layout 3 kolom, `wide:`/`ultra:` = layar lebar. */
+  --breakpoint-tab: 45.0625rem;
+  --breakpoint-desk: 73.8125rem;
+  --breakpoint-wide: 92.5625rem;
+  --breakpoint-ultra: 111.3125rem;
+
+  --animate-ping-soft: ping-soft 1.8s ease-out infinite;
+  --animate-rise-in: rise-in 0.4s ease both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+}
+
+@keyframes ping-soft {
+  0% {
+    box-shadow: 0 0 0 0 rgba(29, 78, 216, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgba(29, 78, 216, 0);
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Panel kaca: isi putih transparan + border gradien cobalt (padding-box/border-box). */
+@utility glass-panel {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.95),
+        rgba(29, 78, 216, 0.22) 45%,
+        rgba(255, 255, 255, 0.7) 75%,
+        rgba(29, 78, 216, 0.16)
+      )
+      border-box;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: var(--shadow-panel);
+  /* Blur besar mahal di GPU ponsel -- dikurangi di layar sempit. */
+  @media (max-width: 720px) {
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+}
+
+/* Kartu job yang menunggu seal (cognita-app.html `.job.awaiting`): border gradien cobalt
+   + latar biru pucat + bayangan. Penanda paling kuat di Job Board. */
+@utility card-awaiting {
+  border-color: transparent;
+  background:
+    linear-gradient(180deg, var(--color-cobalt-tint), #fff) padding-box,
+    linear-gradient(135deg, var(--color-cobalt-soft), var(--color-cobalt) 50%, rgba(29, 78, 216, 0.15)) border-box;
+  box-shadow: var(--shadow-awaiting);
+}
+
+/* Gradien tombol utama (CTA). */
+@utility bg-cta {
+  background: linear-gradient(135deg, var(--color-cobalt-2), var(--color-cobalt) 55%, var(--color-cobalt-deep));
+}
+
+/* Kilau diagonal saat hover (tombol utama / wallet). Elemen butuh `relative overflow-hidden`. */
+@utility shine {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 0.7s ease;
+  }
+  &:hover::after {
+    transform: translateX(120%);
+  }
+}
+
+/* Label kecil uppercase (stat, kv, sub-section). */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 9.5px;
+  line-height: 1.2;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+/* Sembunyikan scrollbar tetapi tetap bisa digulir (stat strip, nav mobile). */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  /* Latar kota: tiga cahaya cobalt lembut + pola titik yang memudar ke tepi. */
+  body {
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(55% 45% at 50% -5%, rgba(29, 78, 216, 0.12), transparent 70%),
+      radial-gradient(35% 40% at 0% 100%, rgba(125, 162, 255, 0.14), transparent 70%),
+      radial-gradient(35% 40% at 100% 90%, rgba(29, 78, 216, 0.1), transparent 70%);
+    background-attachment: fixed;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    /* -1: di bawah semua konten (latar body dipindah ke kanvas, jadi pola tetap terlihat).
+       Sengaja tidak memberi z-index ke `body > *` -- modal wallet (Reown) juga anak body. */
+    z-index: -1;
+    background-image: radial-gradient(rgba(17, 17, 22, 0.07) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(90% 80% at 50% 40%, #000 30%, transparent 85%);
+    -webkit-mask-image: radial-gradient(90% 80% at 50% 40%, #000 30%, transparent 85%);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-cobalt) 22%, transparent);
+    color: var(--color-text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cobalt);
+    outline-offset: 2px;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Scrollbar tipis bertema terang (Firefox, Chrome 121+, Safari 18.2+). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(17, 17, 22, 0.15) transparent;
+  }
+}
+
+/* Dropdown <select>: popup-nya digambar browser sendiri. */
+select {
+  color-scheme: light;
+}
+
+/* Fallback untuk browser lama yang belum mendukung scrollbar-color. */
+@supports not (scrollbar-color: auto) {
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(17, 17, 22, 0.15);
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
