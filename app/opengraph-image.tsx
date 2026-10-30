@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
-import { MARK } from "@/components/site-logo";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 // OG image sementara (placeholder yang mudah diganti: taruh app/opengraph-image.png untuk
 // menggantikan file ini). Mengikuti desain terang/cobalt Phase 1. Tanpa nama chain maupun
@@ -10,7 +11,11 @@ export const contentType = "image/png";
 
 const COBALT = "#1d4ed8";
 
-export default function OpengraphImage() {
+export default async function OpengraphImage() {
+  // Satori tidak bisa memuat path /public, jadi logo di-inline sebagai data URI.
+  const logo = await readFile(join(process.cwd(), "public/brand/cognita-mark.png"));
+  const logoSrc = `data:image/png;base64,${logo.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -26,19 +31,8 @@ export default function OpengraphImage() {
           color: "#111116",
         }}
       >
-        <svg width="168" height="168" viewBox="0 0 64 64">
-          <defs>
-            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor={MARK.gradient[0]} />
-              <stop offset="1" stopColor={MARK.gradient[1]} />
-            </linearGradient>
-          </defs>
-          <rect width="64" height="64" rx="16" fill="url(#g)" />
-          <path d={MARK.arc} fill="none" stroke={MARK.light} strokeWidth={MARK.arcWidth} strokeLinecap="round" />
-          <circle cx={MARK.core.cx} cy={MARK.core.cy} r={MARK.core.r} fill={MARK.light} />
-          <circle cx={MARK.satellite.cx} cy={MARK.satellite.cy} r={MARK.satellite.r} fill={MARK.light} />
-        </svg>
-        <div style={{ marginTop: 36, fontSize: 96, fontWeight: 800, letterSpacing: "0.07em" }}>COGNITA</div>
+        <img src={logoSrc} width={200} height={200} alt="" />
+        <div style={{ marginTop: 24, fontSize: 96, fontWeight: 800, letterSpacing: "0.07em" }}>COGNITA</div>
         <div style={{ marginTop: 12, fontSize: 36, color: "#6a6a80" }}>The City of Working Minds</div>
         <div style={{ marginTop: 40, fontSize: 26, fontStyle: "italic", color: COBALT }}>
           Work sealed. Wages shared.

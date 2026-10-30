@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useEffect, useState, type FormEvent } from 'react';
-import { Button } from '@/components/ui/button';
-import { WARD_LABEL } from '@/types/domain';
-import { WAGE_SPLIT, WAGE_TOKEN } from '@/lib/currency';
-import { isOnChainEscrowConfigured } from '@/lib/web3/strongbox';
-import { takeContinueDraft } from '@/lib/continue-job';
-import type { DistrictId } from '@/types/domain';
+import { useEffect, useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { WARD_LABEL } from "@/types/domain";
+import { WAGE_SPLIT, WAGE_TOKEN } from "@/lib/currency";
+import { isOnChainEscrowConfigured } from "@/lib/web3/strongbox";
+import { takeContinueDraft } from "@/lib/continue-job";
+import type { DistrictId } from "@/types/domain";
 
 export interface PostJobValues {
   title: string;
@@ -48,16 +48,16 @@ export function PostJobForm({
   /** Wright yang bisa di-hire langsung (Warden tidak termasuk). */
   buildings?: PostJobBuilding[];
 }) {
-  const [title, setTitle] = useState('');
-  const [brief, setBrief] = useState('');
+  const [title, setTitle] = useState("");
+  const [brief, setBrief] = useState("");
   const [district, setDistrict] = useState<DistrictId>(
-    initialDistrict ?? 'research',
+    initialDistrict ?? "research",
   );
-  const [budget, setBudget] = useState('');
+  const [budget, setBudget] = useState("");
   const [agentId, setAgentId] = useState<string>(
     buildings.some((b) => b.id === initialAgentId)
-      ? (initialAgentId ?? '')
-      : '',
+      ? (initialAgentId ?? "")
+      : "",
   );
   // Datang dari "Continue in another Ward" di halaman job: judul + brief terisi dari
   // job sebelumnya (draft sekali pakai di sessionStorage). Hanya mengisi kolom yang
@@ -91,9 +91,10 @@ export function PostJobForm({
   }
 
   // Field gaya cognita-app.html `.field`: tinggi 38, radius 12, cincin fokus cobalt.
-  const labelClass = 'flex flex-col gap-1.5 text-[12.5px] font-medium text-ink-2';
+  const labelClass =
+    "flex flex-col gap-1.5 text-[12.5px] font-medium text-ink-2";
   const inputClass =
-    'h-[38px] w-full min-w-0 rounded-control border border-line-2 bg-surface-2 px-3 text-sm font-normal text-text outline-none transition-shadow focus-visible:border-cobalt focus-visible:shadow-[0_0_0_3px_rgba(29,78,216,0.15)]';
+    "h-[38px] w-full min-w-0 rounded-control border border-line-2 bg-surface-2 px-3 text-sm font-normal text-text outline-none transition-shadow focus-visible:border-cobalt focus-visible:shadow-[0_0_0_3px_rgba(29,78,216,0.15)]";
 
   return (
     <form
@@ -119,7 +120,6 @@ export function PostJobForm({
           required
         />
       </label>
-
       <label className={`${labelClass} col-span-full`}>
         Brief
         <textarea
@@ -140,7 +140,7 @@ export function PostJobForm({
             const next = e.target.value as DistrictId;
             setDistrict(next);
             // Ganti Ward yang tidak cocok dengan bangunan terpilih -> kembali ke Warden.
-            if (chosen && chosen.district !== next) setAgentId('');
+            if (chosen && chosen.district !== next) setAgentId("");
           }}
         >
           {Object.entries(WARD_LABEL).map(([id, label]) => (
@@ -150,9 +150,8 @@ export function PostJobForm({
           ))}
         </select>
       </label>
-
       {buildings.length > 0 && (
-        <label className={`${labelClass} col-span-full`}>
+        <label className={labelClass}>
           Building
           <select
             className={inputClass}
@@ -173,7 +172,7 @@ export function PostJobForm({
       )}
 
       <label className={labelClass}>
-        Wage ({WAGE_TOKEN})
+        Cogn ({WAGE_TOKEN})
         <input
           className={`${inputClass} font-mono`}
           type="number"
@@ -193,7 +192,7 @@ export function PostJobForm({
 
       {!isOnChainEscrowConfigured && (
         <p className="col-span-full text-[12px] text-muted">
-          Simulation mode: the wage is recorded in the database only. No{' '}
+          Simulation mode: the wage is recorded in the database only. No{" "}
           {WAGE_TOKEN} is moved and no wallet is needed.
         </p>
       )}
@@ -201,8 +200,8 @@ export function PostJobForm({
       <div className="col-span-full flex justify-end">
         <Button type="submit" variant="primary" disabled={submitting}>
           {submitting
-            ? (submittingLabel ?? 'Locking wage…')
-            : 'Lock wage in the Strongbox'}
+            ? (submittingLabel ?? "Locking wage…")
+            : "Lock wage in the Strongbox"}
         </Button>
       </div>
     </form>

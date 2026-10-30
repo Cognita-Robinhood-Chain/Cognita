@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { MotionPage } from '@/components/motion/primitives';
-import { Panel, PanelHeader } from '@/components/ui/panel';
-import { SiteHeader } from '@/components/site-header';
-import { SiteFooter } from '@/components/site-footer';
-import { cn } from '@/lib/cn';
-import { useRealtimeChanges } from '@/lib/supabase/realtime';
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MotionPage } from "@/components/motion/primitives";
+import { Panel, PanelHeader } from "@/components/ui/panel";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { cn } from "@/lib/cn";
+import { useRealtimeChanges } from "@/lib/supabase/realtime";
 import {
   ADDRESSES,
   PONS_TOKEN_URL,
   explorerAddress,
   explorerToken,
   explorerTx,
-} from '@/lib/web3/addresses';
+} from "@/lib/web3/addresses";
 import type {
   LedgerRow,
   Summary,
   TopBuilding,
   Win,
-} from '@/lib/weighhouse/metrics';
-import { BurnChart, PriceChart } from './charts';
+} from "@/lib/weighhouse/metrics";
+import { BurnChart, PriceChart } from "./charts";
 import {
   ago,
   fmtPct,
@@ -30,42 +30,42 @@ import {
   fmtWage,
   fmtWageUnit,
   shortHash,
-} from './format';
-import { Badge, Empty, Tip } from './ui';
+} from "./format";
+import { Badge, Empty, Tip } from "./ui";
 
 // Warna sesuai kota -- semua lewat token di app/globals.css (split sama dengan RevenueSplit).
 const C = {
-  patrons: 'var(--color-cobalt)',
-  lampOil: 'var(--color-cobalt-soft)',
-  tithe: 'var(--color-tithe)',
-  furnace: 'var(--color-furnace)',
+  patrons: "var(--color-cobalt)",
+  lampOil: "var(--color-cobalt-soft)",
+  tithe: "var(--color-tithe)",
+  furnace: "var(--color-furnace)",
 };
 const WARD_DOT: Record<string, string> = {
-  research: 'var(--color-ward-research)',
-  onchain: 'var(--color-ward-onchain)',
-  creative: 'var(--color-ward-creative)',
-  security: 'var(--color-ward-security)',
-  community: 'var(--color-ward-community)',
+  research: "var(--color-ward-research)",
+  onchain: "var(--color-ward-onchain)",
+  creative: "var(--color-ward-creative)",
+  security: "var(--color-ward-security)",
+  community: "var(--color-ward-community)",
 };
 const BUCKET_COLOR: Record<string, string> = {
   burned: C.furnace,
-  curve: 'var(--color-ward-security)',
-  lp: 'var(--color-ward-onchain)',
-  locker: 'var(--color-faint)',
+  curve: "var(--color-ward-security)",
+  lp: "var(--color-ward-onchain)",
+  locker: "var(--color-faint)",
   strongbox: C.patrons,
-  splitter: 'var(--color-ward-community)',
+  splitter: "var(--color-ward-community)",
   treasuries: C.tithe,
-  circulating: 'var(--color-cobalt-ink)',
+  circulating: "var(--color-cobalt-ink)",
 };
-const WINDOWS: Win[] = ['24h', '7d', 'all'];
-const WIN_LABEL: Record<Win, string> = { '24h': '24h', '7d': '7d', all: 'All' };
+const WINDOWS: Win[] = ["24h", "7d", "all"];
+const WIN_LABEL: Record<Win, string> = { "24h": "24h", "7d": "7d", all: "All" };
 const WIN_PHRASE: Record<Win, string> = {
-  '24h': 'in the last 24h',
-  '7d': 'in the last 7 days',
-  all: 'all time',
+  "24h": "in the last 24h",
+  "7d": "in the last 7 days",
+  all: "all time",
 };
 
-type Range = '24h' | '7d' | '30d';
+type Range = "24h" | "7d" | "30d";
 type PriceSeries = {
   range: Range;
   points: { t: string; usd: number | null; eth: number | null }[];
@@ -92,11 +92,11 @@ export function WeighhouseClient({
   initialTop: TopBuilding[];
   initialPrice: PriceSeries | null;
 }) {
-  const [win, setWin] = useState<Win>('7d');
+  const [win, setWin] = useState<Win>("7d");
   const [summary, setSummary] = useState(initialSummary);
   const [ledger, setLedger] = useState(initialLedger);
   const [top, setTop] = useState(initialTop);
-  const [range, setRange] = useState<Range>('7d');
+  const [range, setRange] = useState<Range>("7d");
   const [price, setPrice] = useState(initialPrice);
   const [flare, setFlare] = useState(false);
   const winRef = useRef(win);
@@ -115,7 +115,7 @@ export function WeighhouseClient({
   }, []);
 
   const refreshLedger = useCallback(async () => {
-    const l = await getJson<LedgerRow[]>('/api/weighhouse/ledger?limit=50');
+    const l = await getJson<LedgerRow[]>("/api/weighhouse/ledger?limit=50");
     if (l) setLedger(l);
   }, []);
 
@@ -143,9 +143,9 @@ export function WeighhouseClient({
 
   // Realtime: event chain baru -> ledger + counter ikut bergerak (debounce 2 dtk).
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useRealtimeChanges('chain_events', (payload) => {
+  useRealtimeChanges("chain_events", (payload) => {
     const ev = (payload.new as { event?: string } | null)?.event;
-    if (ev === 'Burned') {
+    if (ev === "Burned") {
       setFlare(true);
       setTimeout(() => setFlare(false), 2500);
     }
@@ -165,10 +165,10 @@ export function WeighhouseClient({
       console.warn(
         `[Weighhouse] supply buckets sum ${sum} != totalSupply ${s.total}`,
       );
-    const circ = s.buckets.find((b) => b.key === 'circulating');
+    const circ = s.buckets.find((b) => b.key === "circulating");
     if (circ && circ.amount < 0)
       console.warn(
-        '[Weighhouse] circulating < 0: kemungkinan bucket tumpang-tindih (curve/LP/locker).',
+        "[Weighhouse] circulating < 0: kemungkinan bucket tumpang-tindih (curve/LP/locker).",
       );
   }, [summary]);
 
@@ -192,8 +192,9 @@ export function WeighhouseClient({
                 onClick={() => setWin(w)}
                 aria-pressed={win === w}
                 className={cn(
-                  'rounded-full px-3 py-1 text-[12.5px] font-medium text-ink-2 transition-colors hover:text-text',
-                  win === w && 'bg-surface-2 text-text shadow-[0_2px_8px_-2px_rgba(17,17,22,0.15)]',
+                  "rounded-full px-3 py-1 text-[12.5px] font-medium text-ink-2 transition-colors hover:text-text",
+                  win === w &&
+                    "bg-surface-2 text-text shadow-[0_2px_8px_-2px_rgba(17,17,22,0.15)]",
                 )}
               >
                 {WIN_LABEL[w]}
@@ -206,7 +207,7 @@ export function WeighhouseClient({
       {noData && (
         <Panel>
           <Empty>
-            No chain data yet. The indexer fills this page once{' '}
+            No chain data yet. The indexer fills this page once{" "}
             <code>WEIGHHOUSE_DEPLOY_BLOCK</code> is set and the cron has run.
           </Empty>
         </Panel>
@@ -220,7 +221,7 @@ export function WeighhouseClient({
         <Tile
           label="Price"
           tip={{
-            f: 'Latest $WAGE trade price from the newest price snapshot.',
+            f: "Latest $WAGE trade price from the newest price snapshot.",
             href: explorerToken(ADDRESSES.wageToken),
           }}
           value={fmtPriceUsd(t?.priceUsd ?? null)}
@@ -228,20 +229,20 @@ export function WeighhouseClient({
             <>
               {t?.change24hPct != null && (
                 <span
-                  className={t.change24hPct >= 0 ? 'text-good' : 'text-crit'}
+                  className={t.change24hPct >= 0 ? "text-good" : "text-crit"}
                 >
-                  {t.change24hPct >= 0 ? '+' : ''}
+                  {t.change24hPct >= 0 ? "+" : ""}
                   {t.change24hPct.toFixed(2)}% 24h
                 </span>
               )}
               <span className="text-faint">
                 {t?.priceSource
-                  ? ` Source: ${t.priceSource === 'bitquery' ? 'Bitquery' : 'on-chain'} · ${ago(t.priceUpdatedAt)}`
-                  : 'No price source yet'}
+                  ? ` Source: ${t.priceSource === "bitquery" ? "Bitquery" : "on-chain"} · ${ago(t.priceUpdatedAt)}`
+                  : "No price source yet"}
               </span>
               {t?.priceStale && t.priceSource && (
                 <>
-                  {' '}
+                  {" "}
                   <Badge tone="warn">stale</Badge>
                 </>
               )}
@@ -251,7 +252,7 @@ export function WeighhouseClient({
         <Tile
           label="Market cap"
           tip={{
-            f: 'Price × (total supply − burned). Fixed launch, so total supply is the circulating supply.',
+            f: "Price × (total supply − burned). Fixed launch, so total supply is the circulating supply.",
           }}
           value={fmtUsd(t?.marketCapUsd ?? null)}
           sub={<span className="text-faint">Price × supply</span>}
@@ -259,14 +260,14 @@ export function WeighhouseClient({
         <Tile
           label="Liquidity"
           tip={{
-            f: 'Quote-side reserves in the curve (pre-graduation) or the Uniswap v4 pool (post-graduation), in USD.',
+            f: "Quote-side reserves in the curve (pre-graduation) or the Uniswap v4 pool (post-graduation), in USD.",
           }}
           value={fmtUsd(t?.liquidityUsd ?? null)}
           sub={
             <span className="text-faint">
               {t?.liquidityUsd == null
-                ? 'Not tracked yet'
-                : 'Quote-side reserves'}
+                ? "Not tracked yet"
+                : "Quote-side reserves"}
             </span>
           }
         />
@@ -275,21 +276,21 @@ export function WeighhouseClient({
           accent
           gauge={t?.workRatioPct ?? null}
           tip={{
-            f: 'Σ sealed wages ÷ Σ $WAGE traded (curve + v4 pool), same window. Sealed = SealSet amounts + the payee share of resolved disputes.',
+            f: "Σ sealed wages ÷ Σ $WAGE traded (curve + v4 pool), same window. Sealed = SealSet amounts + the payee share of resolved disputes.",
           }}
           value={
             t?.workRatioPct == null
-              ? '—'
-              : `${fmtPct(t.workRatioPct)}${t.workRatioCapped ? '+' : ''}`
+              ? "—"
+              : `${fmtPct(t.workRatioPct)}${t.workRatioCapped ? "+" : ""}`
           }
           sub={
             <span className="text-faint">
-              Share of $WAGE movement that came from paid work.{' '}
-              {t && t.tradeVolumeSource === 'none'
-                ? 'No trades in this window.'
+              Share of $WAGE movement that came from paid work.{" "}
+              {t && t.tradeVolumeSource === "none"
+                ? "No trades in this window."
                 : t
                   ? `${fmtWageUnit(t.sealedWage)} sealed / ${fmtWageUnit(t.tradedWage)} traded.`
-                  : ''}
+                  : ""}
             </span>
           }
         />
@@ -303,7 +304,7 @@ export function WeighhouseClient({
             <span className="text-[11px] text-faint">
               {summary?.supply
                 ? `Block ${summary.supply.blockNumber} · ${ago(summary.supply.updatedAt)}`
-                : ''}
+                : ""}
             </span>
           }
         />
@@ -334,8 +335,9 @@ export function WeighhouseClient({
         </Panel>
         <Panel
           className={cn(
-            'transition-shadow duration-700',
-            flare && 'shadow-[0_0_0_1px_var(--color-furnace),0_0_24px_rgba(226,112,112,0.4)]',
+            "transition-shadow duration-700",
+            flare &&
+              "shadow-[0_0_0_1px_var(--color-furnace),0_0_24px_rgba(226,112,112,0.4)]",
           )}
         >
           <PanelHeader
@@ -359,14 +361,14 @@ export function WeighhouseClient({
             title="Price"
             action={
               <div className="flex gap-1">
-                {(['24h', '7d', '30d'] as Range[]).map((r) => (
+                {(["24h", "7d", "30d"] as Range[]).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRange(r)}
                     aria-pressed={range === r}
                     className={cn(
-                      'rounded-full px-2 py-0.5 text-[11px] text-muted',
-                      range === r && 'bg-surface-2 text-text',
+                      "rounded-full px-2 py-0.5 text-[11px] text-muted",
+                      range === r && "bg-surface-2 text-text",
                     )}
                   >
                     {r}
@@ -389,7 +391,7 @@ export function WeighhouseClient({
             )}
             {price?.source && (
               <p className="mt-1 text-[11px] text-faint">
-                Source: {price.source === 'bitquery' ? 'Bitquery' : 'on-chain'}
+                Source: {price.source === "bitquery" ? "Bitquery" : "on-chain"}
               </p>
             )}
           </div>
@@ -447,7 +449,7 @@ function Tile({
   gauge?: number | null;
 }) {
   return (
-    <Panel className={cn('p-4', accent && 'ring-1 ring-cobalt/25')}>
+    <Panel className={cn("p-4", accent && "ring-1 ring-cobalt/25")}>
       <div className="eyebrow">
         <Tip formula={tip.f} href={tip.href}>
           {label}
@@ -455,14 +457,19 @@ function Tile({
       </div>
       <div
         className={cn(
-          'mt-1.5 font-display leading-tight tabular-nums',
-          accent ? 'text-[34px] font-extrabold text-cobalt' : 'text-[26px] font-bold text-text',
+          "mt-1.5 font-display leading-tight tabular-nums",
+          accent
+            ? "text-[34px] font-extrabold text-cobalt"
+            : "text-[26px] font-bold text-text",
         )}
       >
         {value}
       </div>
       {gauge !== undefined && (
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-[rgba(17,17,22,0.07)]" aria-hidden>
+        <div
+          className="mt-2 h-2 overflow-hidden rounded-full bg-[rgba(17,17,22,0.07)]"
+          aria-hidden
+        >
           <div
             className="h-full rounded-full bg-gradient-to-r from-cobalt to-cobalt-soft transition-[width] duration-700"
             style={{ width: `${Math.min(100, Math.max(0, gauge ?? 0))}%` }}
@@ -478,7 +485,7 @@ function SupplyBlock({
   supply,
   stakedByPatrons,
 }: {
-  supply: NonNullable<Summary['supply']>;
+  supply: NonNullable<Summary["supply"]>;
   stakedByPatrons: number;
 }) {
   const bars = supply.buckets.filter((b) => b.amount > 0);
@@ -524,7 +531,7 @@ function SupplyBlock({
                   {b.label} <span className="text-faint">({b.plain})</span>
                   {b.note && (
                     <>
-                      {' '}
+                      {" "}
                       <Badge tone="warn">{b.note}</Badge>
                     </>
                   )}
@@ -604,7 +611,7 @@ function FlowRow({
   );
 }
 
-function FlowBlock({ flow }: { flow: Summary['flow'] }) {
+function FlowBlock({ flow }: { flow: Summary["flow"] }) {
   const max = Math.max(flow.locked, flow.sealed, 1);
   const empty = flow.locked === 0 && flow.sealed === 0;
   return (
@@ -665,16 +672,16 @@ function FlowBlock({ flow }: { flow: Summary['flow'] }) {
         />
       </div>
       <div className="mt-1 text-[12px] text-faint">
-        Still in escrow {fmtWageUnit(flow.stillInEscrow)} · refunded{' '}
+        Still in escrow {fmtWageUnit(flow.stillInEscrow)} · refunded{" "}
         {fmtWageUnit(flow.refunded)}
       </div>
       <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px] text-muted">
         {(
           [
-            ['posted', flow.jobs.posted],
-            ['sealed', flow.jobs.sealed],
-            ['refunded', flow.jobs.refunded],
-            ['disputed', flow.jobs.disputed],
+            ["posted", flow.jobs.posted],
+            ["sealed", flow.jobs.sealed],
+            ["refunded", flow.jobs.refunded],
+            ["disputed", flow.jobs.disputed],
           ] as const
         ).map(([k, v]) => (
           <div key={k} className="rounded-md bg-surface-2 py-1.5">
@@ -687,7 +694,7 @@ function FlowBlock({ flow }: { flow: Summary['flow'] }) {
   );
 }
 
-function FurnaceBlock({ f, win }: { f: Summary['furnace']; win: Win }) {
+function FurnaceBlock({ f, win }: { f: Summary["furnace"]; win: Win }) {
   return (
     <div className="p-3.5">
       <div className="grid grid-cols-3 gap-2 text-center">
@@ -698,7 +705,7 @@ function FurnaceBlock({ f, win }: { f: Summary['furnace']; win: Win }) {
           value={fmtWageUnit(f.burnedAllTime)}
         />
         <Stat
-          label={`Burned ${win === 'all' ? '(all)' : `(${win})`}`}
+          label={`Burned ${win === "all" ? "(all)" : `(${win})`}`}
           tip="Σ Burned events from the Splitter in this window."
           value={fmtWageUnit(f.burnedInWindow)}
         />
@@ -785,11 +792,13 @@ function TopTable({ rows }: { rows: TopBuilding[] }) {
               <td className="py-1.5">
                 <span
                   className="mr-2 inline-block h-2 w-2 rounded-full"
-                  style={{ background: WARD_DOT[r.ward] ?? 'var(--color-faint)' }}
+                  style={{
+                    background: WARD_DOT[r.ward] ?? "var(--color-faint)",
+                  }}
                 />
                 <Link href={`/agents/${r.agentId}`} className="hover:underline">
                   {r.name}
-                </Link>{' '}
+                </Link>{" "}
                 <span className="font-mono text-xs text-cobalt">{r.sigil}</span>
               </td>
               <td className="text-right font-mono text-[12px]">
@@ -840,18 +849,18 @@ function LedgerTable({ rows }: { rows: LedgerRow[] }) {
               <td>
                 <Badge
                   tone={
-                    r.kind === 'Burned'
-                      ? 'warn'
-                      : r.kind === 'Sealed'
-                        ? 'good'
-                        : 'muted'
+                    r.kind === "Burned"
+                      ? "warn"
+                      : r.kind === "Sealed"
+                        ? "good"
+                        : "muted"
                   }
                 >
                   {r.kind}
                 </Badge>
               </td>
               <td className="text-right font-mono text-[12px]">
-                {r.amount == null ? '—' : fmtWageUnit(r.amount, 2)}
+                {r.amount == null ? "—" : fmtWageUnit(r.amount, 2)}
               </td>
               <td className="pl-4">
                 {r.jobId ? (
@@ -885,10 +894,12 @@ function LedgerTable({ rows }: { rows: LedgerRow[] }) {
 
 function CaBlock() {
   const [copied, setCopied] = useState(false);
-  const ca = ADDRESSES.wageToken;
+  // const ca = ADDRESSES.wageToken;
+  const ca = "";
+
   return (
     <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
-      <span className="text-muted">$WAGE CA</span>
+      <span className="text-muted">$COGN CA</span>
       <code className="max-w-full break-all rounded bg-surface-2 px-2 py-1 font-mono text-[11px] text-text">
         {ca}
       </code>
@@ -904,7 +915,7 @@ function CaBlock() {
           }
         }}
       >
-        {copied ? 'Copied' : 'Copy'}
+        {copied ? "Copied" : "Copy"}
       </button>
       <a
         className="text-cobalt hover:underline"

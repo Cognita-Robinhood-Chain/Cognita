@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
 import {
   useAppKit,
   useAppKitAccount,
   useAppKitNetwork,
-} from '@reown/appkit/react';
-import { useDisconnect } from 'wagmi';
-import { Button } from '@/components/ui/button';
-import { iconButtonClass } from '@/components/ui/icon-button';
-import { SUPPORTED_CHAIN_IDS } from '@/lib/web3/chains';
-import { isWeb3Configured } from '@/lib/web3/config';
-import { isWalletMode } from '@/lib/identity/mode';
-import { X_URL } from '@/lib/social';
+} from "@reown/appkit/react";
+import { useDisconnect } from "wagmi";
+import { Button } from "@/components/ui/button";
+import { iconButtonClass } from "@/components/ui/icon-button";
+import { SUPPORTED_CHAIN_IDS } from "@/lib/web3/chains";
+import { isWeb3Configured } from "@/lib/web3/config";
+import { isWalletMode } from "@/lib/identity/mode";
+import { X_URL } from "@/lib/social";
 
 /** Tombol ikon X di header -- membuka akun X Cognita di tab baru. */
 function XLink() {
@@ -40,12 +40,18 @@ function truncate(address: string) {
  *  never initialized (see web3-provider.tsx). Kept as a separate component rather than an
  *  early return inside WalletConnectActive so the hook calls below stay unconditional either
  *  way (rules-of-hooks). */
-function WalletConnectDisabled({ reason, className }: { reason: string; className?: string }) {
+function WalletConnectDisabled({
+  reason,
+  className,
+}: {
+  reason: string;
+  className?: string;
+}) {
   return (
     <span
       title={reason}
       aria-disabled="true"
-      className={`${className ?? 'inline-flex'} h-9 cursor-not-allowed items-center rounded-control border border-line bg-surface-2 px-3.5 text-[13px] font-semibold text-muted opacity-70`}
+      className={`${className ?? "inline-flex"} h-9 cursor-not-allowed items-center rounded-control border border-line bg-surface-2 px-3.5 text-[13px] font-semibold text-muted opacity-70`}
     >
       Connect wallet
     </span>
@@ -60,8 +66,11 @@ function SimulationBadge() {
       title="Simulation mode: no wallet needed. Wages are recorded in the database only, and the jobs you post belong to this browser. Wallet connect turns on once on-chain escrow is configured (NEXT_PUBLIC_WAGEHOLD_NETWORK + NEXT_PUBLIC_STRONGBOX_ADDRESS + NEXT_PUBLIC_WAGE_TOKEN_ADDRESS)."
       className="inline-flex h-9 items-center gap-[7px] rounded-control border border-line bg-surface-2 px-3 text-[12.5px] text-ink-2"
     >
-      <i aria-hidden className="size-[7px] rounded-full bg-live shadow-[0_0_0_3px_rgba(34,176,125,0.18)]" />
-      Simulation<span className="hidden text-muted ultra:inline">&nbsp;· this browser</span>
+      <i
+        aria-hidden
+        className="size-[7px] rounded-full bg-live shadow-[0_0_0_3px_rgba(34,176,125,0.18)]"
+      />
+      Simulation
     </span>
   );
 }
@@ -132,13 +141,13 @@ function WalletConnectActive() {
   }
 
   const wrongNetwork =
-    typeof chainId === 'number' && !SUPPORTED_CHAIN_IDS.has(chainId);
+    typeof chainId === "number" && !SUPPORTED_CHAIN_IDS.has(chainId);
 
   if (wrongNetwork) {
     return (
       <Button
         className="h-9 border-warn/50 bg-warn/10 text-warn hover:border-warn"
-        onClick={() => open({ view: 'Networks' })}
+        onClick={() => open({ view: "Networks" })}
       >
         Wrong network · switch
       </Button>
@@ -147,7 +156,10 @@ function WalletConnectActive() {
 
   return (
     <div className="flex items-center gap-1.5">
-      <Button className="h-9 font-mono text-xs font-medium" onClick={() => open({ view: 'Account' })}>
+      <Button
+        className="h-9 font-mono text-xs font-medium"
+        onClick={() => open({ view: "Account" })}
+      >
         {truncate(address)}
       </Button>
       <button
@@ -179,7 +191,8 @@ export function WalletConnect() {
         {/* Tidak berfungsi di mode simulasi -- disembunyikan di ponsel supaya header muat. */}
         <WalletConnectDisabled
           className="hidden tab:inline-flex"
-          reason="Simulation mode: no wallet needed. Wallet connect turns on once on-chain escrow (mainnet) is configured in .env.local." />
+          reason="Simulation mode: no wallet needed. Wallet connect turns on once on-chain escrow (mainnet) is configured in .env.local."
+        />
       </>
     );
   } else if (!isWeb3Configured) {
