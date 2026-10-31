@@ -25,4 +25,3 @@ next-env.d.ts
 # E2E (Fase 2 item 8): kunci privat testnet + laporan run
 scripts/.env.e2e
 scripts/e2e-report-*.json
-*.pre-phase1.bak
