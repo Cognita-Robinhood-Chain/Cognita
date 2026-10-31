@@ -171,10 +171,10 @@ export function PostJobForm({
         </label>
       )}
 
-      <label className={labelClass}>
+      <label className={`${labelClass} col-span-full`}>
         Cogn ({WAGE_TOKEN})
         <input
-          className={`${inputClass} font-mono`}
+          className={`${inputClass} font-mono w-full`}
           type="number"
           min={1}
           value={budget}

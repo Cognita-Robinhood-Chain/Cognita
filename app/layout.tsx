@@ -13,8 +13,9 @@ import "./globals.css";
 // lewat @theme di globals.css (yang membaca variabel ini sebagai fallback).
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
-  // 800 dipakai wordmark, nama Wright, dan angka besar (desain cognita-app.html).
-  weight: ["600", "700", "800"],
+  // Variable font (tanpa daftar weight): 600–800 tetap tersedia (800 dipakai wordmark, nama Wright,
+  // dan angka besar di cognita-app.html). Daftar weight eksplisit membuat Turbopack dev gagal
+  // me-resolve file font ("next/font/google queries have exactly one entry").
   variable: "--font-display-family",
 });
 
