@@ -26,10 +26,3 @@ next-env.d.ts
 scripts/.env.e2e
 scripts/e2e-report-*.json
 *.pre-phase1.bak
-ARCHITECTURE.md
-CLAUDE.md
-brief-cognita.md
-DESIGN_SYSTEM.md
-USER_FLOWS.md
-PRD.md
-cognita-app.html
