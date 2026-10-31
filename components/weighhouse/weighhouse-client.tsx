@@ -221,7 +221,7 @@ export function WeighhouseClient({
         <Tile
           label="Price"
           tip={{
-            f: "Latest $WAGE trade price from the newest price snapshot.",
+            f: "Latest $COGN trade price from the newest price snapshot.",
             href: explorerToken(ADDRESSES.wageToken),
           }}
           value={fmtPriceUsd(t?.priceUsd ?? null)}
@@ -276,7 +276,7 @@ export function WeighhouseClient({
           accent
           gauge={t?.workRatioPct ?? null}
           tip={{
-            f: "Σ sealed wages ÷ Σ $WAGE traded (curve + v4 pool), same window. Sealed = SealSet amounts + the payee share of resolved disputes.",
+            f: "Σ sealed wages ÷ Σ $COGN traded (curve + v4 pool), same window. Sealed = SealSet amounts + the payee share of resolved disputes.",
           }}
           value={
             t?.workRatioPct == null
@@ -285,7 +285,7 @@ export function WeighhouseClient({
           }
           sub={
             <span className="text-faint">
-              Share of $WAGE movement that came from paid work.{" "}
+              Share of $COGN movement that came from paid work.{" "}
               {t && t.tradeVolumeSource === "none"
                 ? "No trades in this window."
                 : t

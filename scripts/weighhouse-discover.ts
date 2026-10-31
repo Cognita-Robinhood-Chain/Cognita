@@ -15,12 +15,32 @@
  */
 import { createPublicClient, http, type Hex } from "viem";
 import { activeChain } from "../lib/web3/chains";
-import { ADDRESSES, OPEN_ITEMS, PONS, explorerAddress } from "../lib/web3/addresses";
-import { POOL_GRADUATED_EVENT, TOKEN_LAUNCHED_EVENT, V4_INITIALIZE_EVENT, ERC20_ABI } from "../lib/weighhouse/events";
-import { PONS_POOL_FEE, PONS_POOL_TICK_SPACING, ZERO_ADDRESS, readPoolState, wagePoolKey, type AnyClient } from "../lib/weighhouse/pons";
+import {
+  ADDRESSES,
+  OPEN_ITEMS,
+  PONS,
+  explorerAddress,
+} from "../lib/web3/addresses";
+import {
+  POOL_GRADUATED_EVENT,
+  TOKEN_LAUNCHED_EVENT,
+  V4_INITIALIZE_EVENT,
+  ERC20_ABI,
+} from "../lib/weighhouse/events";
+import {
+  PONS_POOL_FEE,
+  PONS_POOL_TICK_SPACING,
+  ZERO_ADDRESS,
+  readPoolState,
+  wagePoolKey,
+  type AnyClient,
+} from "../lib/weighhouse/pons";
 import { fullRangeReserves, quotePerWage } from "../lib/weighhouse/v4math";
 
-const client = createPublicClient({ chain: activeChain, transport: http() }) as unknown as AnyClient;
+const client = createPublicClient({
+  chain: activeChain,
+  transport: http(),
+}) as unknown as AnyClient;
 const out: string[] = [];
 const warn: string[] = [];
 const say = (m: string) => console.log(m);
@@ -38,21 +58,33 @@ async function creationBlock(a: `0x${string}`): Promise<bigint | null> {
   try {
     const latest = await client.getBlockNumber();
     if (!(await hasCode(a, latest))) return null;
-    let lo = 0n, hi = latest;
+    let lo = 0n,
+      hi = latest;
     while (lo < hi) {
       const mid = (lo + hi) / 2n;
-      if (await hasCode(a, mid)) hi = mid; else lo = mid + 1n;
+      if (await hasCode(a, mid)) hi = mid;
+      else lo = mid + 1n;
     }
     return lo;
   } catch (e) {
-    say(`  (RPC tidak menyimpan state historis untuk ${a}: ${e instanceof Error ? e.message.split("\n")[0] : e})`);
+    say(
+      `  (RPC tidak menyimpan state historis untuk ${a}: ${e instanceof Error ? e.message.split("\n")[0] : e})`,
+    );
     return null;
   }
 }
 
 /** getLogs seluruh rentang; kalau RPC menolak rentang besar, turun ke potongan. */
-async function logsAcross<T>(run: (from: bigint, to: bigint) => Promise<T[]>, from: bigint, to: bigint): Promise<T[]> {
-  try { return await run(from, to); } catch { /* rentang terlalu besar -> potong */ }
+async function logsAcross<T>(
+  run: (from: bigint, to: bigint) => Promise<T[]>,
+  from: bigint,
+  to: bigint,
+): Promise<T[]> {
+  try {
+    return await run(from, to);
+  } catch {
+    /* rentang terlalu besar -> potong */
+  }
   const all: T[] = [];
   const step = 200_000n;
   for (let f = from; f <= to; f += step) {
@@ -65,43 +97,70 @@ async function logsAcross<T>(run: (from: bigint, to: bigint) => Promise<T[]>, fr
 }
 
 async function main() {
-  say(`Chain: ${activeChain.name} (${activeChain.id})\nToken: ${ADDRESSES.wageToken}\n`);
+  say(
+    `Chain: ${activeChain.name} (${activeChain.id})\nToken: ${ADDRESSES.wageToken}\n`,
+  );
 
   // 1. deploy block --------------------------------------------------------------------------
   say("1) DEPLOY_BLOCK (Strongbox + Splitter)");
-  const [sb, sp] = await Promise.all([creationBlock(ADDRESSES.strongbox), creationBlock(ADDRESSES.splitter)]);
-  say(`   Strongbox dibuat di blok ${sb ?? "?"}, Splitter di blok ${sp ?? "?"}`);
-  if (sb != null && sp != null) out.push(`WEIGHHOUSE_DEPLOY_BLOCK=${sb < sp ? sb : sp}`);
-  else warn.push(
-    `DEPLOY_BLOCK: isi manual dari "Contract creation" di Blockscout:\n     ${explorerAddress(ADDRESSES.strongbox)}\n     ${explorerAddress(ADDRESSES.splitter)}\n   (ambil blok yang lebih kecil)`,
+  const [sb, sp] = await Promise.all([
+    creationBlock(ADDRESSES.strongbox),
+    creationBlock(ADDRESSES.splitter),
+  ]);
+  say(
+    `   Strongbox dibuat di blok ${sb ?? "?"}, Splitter di blok ${sp ?? "?"}`,
   );
+  if (sb != null && sp != null)
+    out.push(`WEIGHHOUSE_DEPLOY_BLOCK=${sb < sp ? sb : sp}`);
+  else
+    warn.push(
+      `DEPLOY_BLOCK: isi manual dari "Contract creation" di Blockscout:\n     ${explorerAddress(ADDRESSES.strongbox)}\n     ${explorerAddress(ADDRESSES.splitter)}\n   (ambil blok yang lebih kecil)`,
+    );
 
   // 2. TokenLaunched -> curve + pair token ---------------------------------------------------
-  say("\n2) Bonding curve ($WAGE di Pons V2)");
+  say("\n2) Bonding curve ($COGN di Pons V2)");
   const tokenBlock = manualFrom ?? (await creationBlock(ADDRESSES.wageToken));
   let launchBlock: bigint | null = null;
   let pairToken: `0x${string}` = OPEN_ITEMS.pairToken ?? ZERO_ADDRESS;
   if (tokenBlock == null) {
-    warn.push("Blok pembuatan token tidak ditemukan. Jalankan ulang dengan --from-block <blok launch $WAGE> (lihat Blockscout, tab Contract).");
+    warn.push(
+      "Blok pembuatan token tidak ditemukan. Jalankan ulang dengan --from-block <blok launch $COGN> (lihat Blockscout, tab Contract).",
+    );
   } else {
     const launches = await client.getLogs({
-      address: PONS.launchFactory, event: TOKEN_LAUNCHED_EVENT, args: { token: ADDRESSES.wageToken },
-      fromBlock: tokenBlock > 50n ? tokenBlock - 50n : 0n, toBlock: tokenBlock + 2000n,
+      address: PONS.launchFactory,
+      event: TOKEN_LAUNCHED_EVENT,
+      args: { token: ADDRESSES.wageToken },
+      fromBlock: tokenBlock > 50n ? tokenBlock - 50n : 0n,
+      toBlock: tokenBlock + 2000n,
     });
     if (launches.length === 0) {
       warn.push(
-        `Tidak ada TokenLaunched untuk $WAGE dari factory ${PONS.launchFactory} dekat blok ${tokenBlock}. ` +
+        `Tidak ada TokenLaunched untuk $COGN dari factory ${PONS.launchFactory} dekat blok ${tokenBlock}. ` +
           "Token mungkin diluncurkan lewat factory lain (mis. Pons V1, yang tidak punya bonding curve) -- jangan isi WEIGHHOUSE_WAGE_CURVE.",
       );
     } else {
       const l = launches[0];
       launchBlock = l.blockNumber;
-      const { curve, pairToken: pt, graduationThreshold } = l.args as unknown as { curve: `0x${string}`; pairToken: `0x${string}`; graduationThreshold: bigint };
+      const {
+        curve,
+        pairToken: pt,
+        graduationThreshold,
+      } = l.args as unknown as {
+        curve: `0x${string}`;
+        pairToken: `0x${string}`;
+        graduationThreshold: bigint;
+      };
       pairToken = pt.toLowerCase() as `0x${string}`;
-      say(`   curve        ${curve}\n   pairToken    ${pairToken}${pairToken === ZERO_ADDRESS ? " (ETH native)" : ""}\n   threshold    ${graduationThreshold} (unit quote mentah)\n   launch tx    ${l.transactionHash} (blok ${launchBlock})`);
+      say(
+        `   curve        ${curve}\n   pairToken    ${pairToken}${pairToken === ZERO_ADDRESS ? " (ETH native)" : ""}\n   threshold    ${graduationThreshold} (unit quote mentah)\n   launch tx    ${l.transactionHash} (blok ${launchBlock})`,
+      );
       out.push(`WEIGHHOUSE_WAGE_CURVE=${curve.toLowerCase()}`);
-      if (pairToken !== ZERO_ADDRESS) out.push(`WEIGHHOUSE_PAIR_TOKEN=${pairToken}`);
-      out.push(`# opsional: hitung trading sejak launch (backfill lebih lama):\n# WEIGHHOUSE_MARKET_START_BLOCK=${launchBlock}`);
+      if (pairToken !== ZERO_ADDRESS)
+        out.push(`WEIGHHOUSE_PAIR_TOKEN=${pairToken}`);
+      out.push(
+        `# opsional: hitung trading sejak launch (backfill lebih lama):\n# WEIGHHOUSE_MARKET_START_BLOCK=${launchBlock}`,
+      );
     }
   }
 
@@ -111,9 +170,16 @@ async function main() {
   const key = wagePoolKey(pairToken);
   const wageIsToken0 = key.wageIsToken0;
   if ((OPEN_ITEMS.pairToken ?? ZERO_ADDRESS) !== pairToken) {
-    warn.push(`Env WEIGHHOUSE_PAIR_TOKEN (${OPEN_ITEMS.pairToken ?? "kosong = ETH native"}) berbeda dari quote asli launch ($pairToken). Pasang nilai dari bagian env di bawah.`.replace("$pairToken", pairToken));
+    warn.push(
+      `Env WEIGHHOUSE_PAIR_TOKEN (${OPEN_ITEMS.pairToken ?? "kosong = ETH native"}) berbeda dari quote asli launch ($pairToken). Pasang nilai dari bagian env di bawah.`.replace(
+        "$pairToken",
+        pairToken,
+      ),
+    );
   }
-  say(`   PoolKey: fee=${PONS_POOL_FEE} tickSpacing=${PONS_POOL_TICK_SPACING} hooks=${PONS.memeHook}\n   pool ID (dihitung) ${key.poolId}`);
+  say(
+    `   PoolKey: fee=${PONS_POOL_FEE} tickSpacing=${PONS_POOL_TICK_SPACING} hooks=${PONS.memeHook}\n   pool ID (dihitung) ${key.poolId}`,
+  );
 
   let state: Awaited<ReturnType<typeof readPoolState>> = null;
   try {
@@ -123,32 +189,57 @@ async function main() {
   }
 
   if (state === null) {
-    say("   Pool belum diinisialisasi -> $WAGE masih di bonding curve (belum graduation).");
+    say(
+      "   Pool belum diinisialisasi -> $WAGE masih di bonding curve (belum graduation).",
+    );
   } else {
-    say(`   GRADUATED. sqrtPriceX96=${state.sqrtPriceX96} tick=${state.tick} liquidity=${state.liquidity}`);
-    say("   Layout storage PoolManager: OK (tick konsisten dengan sqrtPriceX96).");
+    say(
+      `   GRADUATED. sqrtPriceX96=${state.sqrtPriceX96} tick=${state.tick} liquidity=${state.liquidity}`,
+    );
+    say(
+      "   Layout storage PoolManager: OK (tick konsisten dengan sqrtPriceX96).",
+    );
 
     const latest = await client.getBlockNumber();
     const from = launchBlock ?? tokenBlock ?? 0n;
     const grads = await logsAcross(
-      (f, t) => client.getLogs({ address: PONS.launchFactory, event: POOL_GRADUATED_EVENT, args: { token: ADDRESSES.wageToken }, fromBlock: f, toBlock: t }),
-      from, latest,
+      (f, t) =>
+        client.getLogs({
+          address: PONS.launchFactory,
+          event: POOL_GRADUATED_EVENT,
+          args: { token: ADDRESSES.wageToken },
+          fromBlock: f,
+          toBlock: t,
+        }),
+      from,
+      latest,
     );
     if (grads[0]) {
       const g = grads[0];
       const blk = await client.getBlock({ blockNumber: g.blockNumber });
       const iso = new Date(Number(blk.timestamp) * 1000).toISOString();
-      say(`   PoolGraduated di blok ${g.blockNumber} (${iso}), tx ${g.transactionHash}`);
+      say(
+        `   PoolGraduated di blok ${g.blockNumber} (${iso}), tx ${g.transactionHash}`,
+      );
       out.push(`NEXT_PUBLIC_WAGE_GRADUATED_AT=${iso}`);
 
       // Bukti pool ID: event Initialize dengan id yang sama harus ada di blok graduation.
       const inits = await client.getLogs({
-        address: PONS.poolManager, event: V4_INITIALIZE_EVENT, args: { id: key.poolId as Hex },
-        fromBlock: g.blockNumber > 5n ? g.blockNumber - 5n : 0n, toBlock: g.blockNumber + 5n,
+        address: PONS.poolManager,
+        event: V4_INITIALIZE_EVENT,
+        args: { id: key.poolId as Hex },
+        fromBlock: g.blockNumber > 5n ? g.blockNumber - 5n : 0n,
+        toBlock: g.blockNumber + 5n,
       });
       if (inits.length) {
-        const a = inits[0].args as unknown as { hooks: string; fee: number; tickSpacing: number };
-        say(`   TERBUKTI: Initialize(id=${key.poolId}) ada di blok ${inits[0].blockNumber}; hooks=${a.hooks} fee=${a.fee} tickSpacing=${a.tickSpacing}`);
+        const a = inits[0].args as unknown as {
+          hooks: string;
+          fee: number;
+          tickSpacing: number;
+        };
+        say(
+          `   TERBUKTI: Initialize(id=${key.poolId}) ada di blok ${inits[0].blockNumber}; hooks=${a.hooks} fee=${a.fee} tickSpacing=${a.tickSpacing}`,
+        );
       } else {
         warn.push(
           `Pool ID hasil hitungan TIDAK ditemukan pada event Initialize di blok graduation. Pool ID itu hanya benar kalau PoolKey sesuai; ` +
@@ -156,16 +247,43 @@ async function main() {
         );
       }
     } else {
-      warn.push("Pool sudah ada tapi event PoolGraduated tidak ditemukan (RPC membatasi rentang?). Isi NEXT_PUBLIC_WAGE_GRADUATED_AT manual dari Blockscout.");
+      warn.push(
+        "Pool sudah ada tapi event PoolGraduated tidak ditemukan (RPC membatasi rentang?). Isi NEXT_PUBLIC_WAGE_GRADUATED_AT manual dari Blockscout.",
+      );
     }
 
     // 4. ringkasan pool (estimasi full-range) + penjaga -----------------------------------------
-    const est = fullRangeReserves(state.liquidity, state.sqrtPriceX96, wageIsToken0);
-    const pmWage = await client.readContract({ address: ADDRESSES.wageToken, abi: ERC20_ABI, functionName: "balanceOf", args: [PONS.poolManager] });
-    say(`\n4) Cadangan pool (estimasi full-range)\n   WAGE  ${(Number(est.wage) / 1e18).toLocaleString()}  (saldo WAGE PoolManager: ${(Number(pmWage) / 1e18).toLocaleString()})`);
-    if (est.wage > pmWage) warn.push("Estimasi WAGE di pool melebihi saldo PoolManager -> ada LP non-full-range; LP pool akan tampil 'Not tracked'.");
-    const dec = pairToken === ZERO_ADDRESS ? 18 : Number(await client.readContract({ address: pairToken, abi: ERC20_ABI, functionName: "decimals" }));
-    say(`   Harga spot: ${quotePerWage(state.sqrtPriceX96, wageIsToken0, dec)} ${pairToken === ZERO_ADDRESS ? "ETH" : "unit quote"} per WAGE`);
+    const est = fullRangeReserves(
+      state.liquidity,
+      state.sqrtPriceX96,
+      wageIsToken0,
+    );
+    const pmWage = await client.readContract({
+      address: ADDRESSES.wageToken,
+      abi: ERC20_ABI,
+      functionName: "balanceOf",
+      args: [PONS.poolManager],
+    });
+    say(
+      `\n4) Cadangan pool (estimasi full-range)\n   WAGE  ${(Number(est.wage) / 1e18).toLocaleString()}  (saldo WAGE PoolManager: ${(Number(pmWage) / 1e18).toLocaleString()})`,
+    );
+    if (est.wage > pmWage)
+      warn.push(
+        "Estimasi WAGE di pool melebihi saldo PoolManager -> ada LP non-full-range; LP pool akan tampil 'Not tracked'.",
+      );
+    const dec =
+      pairToken === ZERO_ADDRESS
+        ? 18
+        : Number(
+            await client.readContract({
+              address: pairToken,
+              abi: ERC20_ABI,
+              functionName: "decimals",
+            }),
+          );
+    say(
+      `   Harga spot: ${quotePerWage(state.sqrtPriceX96, wageIsToken0, dec)} ${pairToken === ZERO_ADDRESS ? "ETH" : "unit quote"} per WAGE`,
+    );
   }
 
   say("\n──────── tempel ke .env.local (dan Vercel) ────────");
@@ -176,4 +294,7 @@ async function main() {
     process.exitCode = 2;
   }
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

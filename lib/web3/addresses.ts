@@ -9,7 +9,8 @@ import { activeChain } from "@/lib/web3/chains";
  * dipakai di production.
  */
 const lc = (a: string) => a.toLowerCase() as `0x${string}`;
-const optional = (v: string | undefined) => (v && /^0x[0-9a-fA-F]{40}$/.test(v) ? lc(v) : undefined);
+const optional = (v: string | undefined) =>
+  v && /^0x[0-9a-fA-F]{40}$/.test(v) ? lc(v) : undefined;
 
 export const ADDRESSES = {
   wageToken: lc("0x1946b849518b87d52985ae1aeeb163a59089f2c8"),
@@ -35,7 +36,9 @@ export const PONS = {
  *  terkait mati dengan anggun (bukan error). */
 export const OPEN_ITEMS = {
   /** Blok deploy Strongbox/Splitter paling awal; indexer mulai dari sini. */
-  deployBlock: process.env.WEIGHHOUSE_DEPLOY_BLOCK ? BigInt(process.env.WEIGHHOUSE_DEPLOY_BLOCK) : undefined,
+  deployBlock: process.env.WEIGHHOUSE_DEPLOY_BLOCK
+    ? BigInt(process.env.WEIGHHOUSE_DEPLOY_BLOCK)
+    : undefined,
   /** Kontrak bonding curve per-token (pra-graduation). */
   wageCurve: optional(process.env.WEIGHHOUSE_WAGE_CURVE),
   /** Quote asset launch Pons ($WAGE dikutip terhadap apa). Kosong = ETH native (address(0)), default Pons.
@@ -43,7 +46,9 @@ export const OPEN_ITEMS = {
   pairToken: optional(process.env.WEIGHHOUSE_PAIR_TOKEN),
   /** Blok awal untuk event PASAR (curve + pool). Kosong = sama dengan deployBlock. Isi dengan blok
    *  launch $WAGE kalau ingin volume trading dihitung sejak launch (backfill lebih lama). */
-  marketStartBlock: process.env.WEIGHHOUSE_MARKET_START_BLOCK ? BigInt(process.env.WEIGHHOUSE_MARKET_START_BLOCK) : undefined,
+  marketStartBlock: process.env.WEIGHHOUSE_MARKET_START_BLOCK
+    ? BigInt(process.env.WEIGHHOUSE_MARKET_START_BLOCK)
+    : undefined,
   /** OPSIONAL override pool ID (bytes32). Normalnya DIHITUNG otomatis dari token + hook Pons. */
   v4PoolId: /^0x[0-9a-fA-F]{64}$/.test(process.env.WEIGHHOUSE_V4_POOL_ID ?? "")
     ? (process.env.WEIGHHOUSE_V4_POOL_ID!.toLowerCase() as `0x${string}`)
@@ -58,13 +63,17 @@ export const WAGE_TOTAL_SUPPLY_CAP = 1_000_000_000; // untuk "% supply terbakar"
 // ---- Blockscout ---------------------------------------------------------------------------
 // Brief: "Robinhood Chain mainnet (chain ID 4663)". Link explorer mengikuti activeChain supaya
 // rehearsal testnet tidak menunjuk ke mainnet.
-const explorer = (activeChain.blockExplorers?.default.url ?? "https://robinhoodchain.blockscout.com").replace(/\/$/, "");
+const explorer = (
+  activeChain.blockExplorers?.default.url ??
+  "https://robinhoodchain.blockscout.com"
+).replace(/\/$/, "");
 export const explorerAddress = (a: string) => `${explorer}/address/${a}`;
 export const explorerTx = (h: string) => `${explorer}/tx/${h}`;
 export const explorerToken = (a: string) => `${explorer}/token/${a}`;
 
 /** Link halaman Pons $WAGE. Sengaja lewat env (tidak ada URL yang bisa kami verifikasi); kosong = link disembunyikan. */
-export const PONS_TOKEN_URL = process.env.NEXT_PUBLIC_PONS_TOKEN_URL || undefined;
+export const PONS_TOKEN_URL =
+  process.env.NEXT_PUBLIC_PONS_TOKEN_URL || undefined;
 
 /** Pre-flight (brief §2): token yang dipakai app harus sama dengan CA di brief. Dipakai oleh
  *  scripts/weighhouse-preflight.ts dan peringatan dev-console di halaman. */
